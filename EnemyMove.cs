@@ -5,26 +5,55 @@ using UnityEngine;
 public class EnemyMove : MonoBehaviour
 {
     Rigidbody2D rigid;
+    Animator animator;
+    SpriteRenderer renderer;
     public int nextMove;
-    
-    void Awake()
+
+    private void Awake()
     {
         rigid = GetComponent<Rigidbody2D>();
+        renderer = GetComponent<SpriteRenderer>();
         Invoke("Think", 5);
     }
 
-    
     void FixedUpdate()
-    {  
-         //Move
-        rigid.velocity = new Vector2(nextMove, rigid.velocity.y);// 절댓값 클수록 빨라짐
+    {
+        //Move
+        rigid.velocity = new Vector2(nextMove, rigid.velocity.y);
+
+        //Platform Check
+        Vector2 frontVec = new Vector2(rigid.position.x + nextMove*0.3f, rigid.position.y);
+        Debug.DrawRay(frontVec, Vector3.down, new Color(0, 1, 0));
+        RaycastHit2D rayHit = Physics2D.Raycast(frontVec, Vector3.down, 1, LayerMask.GetMask("Platforms"));
+        if (rayHit.collider == null)
+        {
+            Debug.Log("경고! 이 앞 낭떠러지다");
+            Turn();
+        }
 
     }
 
-    //재귀 함수:자신을 스스로 호출하는 함수
     void Think()
     {
-        nextMove = Random.Range(-10, 20);// 속도 -10에서 20 사이 왔다갔다 랜덤으로 변수 저장
+        //Set Next Active
+        nextMove = Random.Range(-1, 2);
+
+        //Flip Sprite
+        if(nextMove != 0)
+        {
+            renderer.flipX = nextMove == 1;
+        }
+
+        //Set Next Active
+        float nextThinkTime = Random.Range(2f, 5f);
+        Invoke("Think", nextThinkTime);
+    }
+
+    void Turn()
+    {
+        nextMove *= -1;
+        renderer.flipX = nextMove == 1;
+        CancelInvoke();
         Invoke("Think", 5);
     }
 }

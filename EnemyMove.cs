@@ -6,31 +6,35 @@ public class EnemyMove : MonoBehaviour
 {
     Rigidbody2D rigid;
     Animator animator;
-    SpriteRenderer renderer;
-    public int nextMove;
+    SpriteRenderer spriteRenderer;
+    public int nextMove; // 행동 지표 결정 변수
+    CapsuleCollider2D capesuleCollider;
 
     private void Awake()
     {
         rigid = GetComponent<Rigidbody2D>();
-        renderer = GetComponent<SpriteRenderer>();
-        Invoke("Think", 5);
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        capesuleCollider = GetComponent<CapsuleCollider2D>();
+        Invoke("Think", 3);
     }
 
     void FixedUpdate()
     {
         //Move
-        rigid.velocity = new Vector2(nextMove, rigid.velocity.y);
+        rigid.velocity = new Vector2(nextMove * 6, rigid.velocity.y);
 
         //Platform Check
-        Vector2 frontVec = new Vector2(rigid.position.x + nextMove*0.3f, rigid.position.y);
-        Debug.DrawRay(frontVec, Vector3.down, new Color(0, 1, 0));
-        RaycastHit2D rayHit = Physics2D.Raycast(frontVec, Vector3.down, 1, LayerMask.GetMask("Platforms"));
+        Vector2 frontVec = new Vector2(rigid.position.x + nextMove, rigid.position.y);
+        //[THINK]
+        // Ray가 너무 짧아서 Platform까지 닿지 않는 문제가 있었고
+        // Platform collider의 사이 사이를 낭떠러지로 판단하는 경우가 있어서, Box
+        Debug.DrawRay(frontVec, Vector3.down * 5.0f, new Color(0, 1, 0));
+        RaycastHit2D rayHit = Physics2D.Raycast(frontVec, Vector3.down, 5.0f, LayerMask.GetMask("Platform"));
         if (rayHit.collider == null)
         {
             Debug.Log("경고! 이 앞 낭떠러지다");
             Turn();
         }
-
     }
 
     void Think()
@@ -41,7 +45,7 @@ public class EnemyMove : MonoBehaviour
         //Flip Sprite
         if(nextMove != 0)
         {
-            renderer.flipX = nextMove == 1;
+            spriteRenderer.flipX = nextMove == 1;
         }
 
         //Set Next Active
@@ -52,8 +56,27 @@ public class EnemyMove : MonoBehaviour
     void Turn()
     {
         nextMove *= -1;
-        renderer.flipX = nextMove == 1;
+        spriteRenderer.flipX = nextMove == 1;
         CancelInvoke();
-        Invoke("Think", 5);
+        Invoke("Think", 3);
+    }
+
+    public void OnDamaged()//enemy가 죽음 함수: 죽었을 때 취해야하는 액션 구현
+    {
+        //Sprite Alpha
+        spriteRenderer.color = new Color(1, 1, 1, 0.4f);
+        //Sprite Flip Y
+        spriteRenderer.flipY = true;
+        //Collider Disable
+        capesuleCollider.enabled = false;
+        //Die Effect Jump
+        rigid.AddForce(Vector2.up * 5, ForceMode2D.Impulse);
+        //Destroy
+        Invoke("DeActive", 3);
+    }
+
+    void DeActive()
+    {
+        gameObject.SetActive(false);
     }
 }
